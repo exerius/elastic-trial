@@ -31,8 +31,6 @@ class Rubric(SQLModel, table=True):
     """В задании говорилось, что рубрики доложны храниться как списки в таблице текстов, но это не соответсвует  1НФ"""
     id: Optional[int] =  Field(default=None, primary_key=True)
     name: str
-    id: Optional[int] = Field(default=None, primary_key=True)
-    name: str
     texts: List["Text"] = Relationship(
         back_populates="rubrics",
         link_model=RubricTextLink
@@ -56,11 +54,3 @@ class Text(BaseText, table=True):
 class TextResponse(BaseText):
     """Модель объекта, который мы будем вохвращать через API"""
     rubrics: List[Rubric] = []
-
-
-sqlite_file_name = "database.db"
-sqlite_url = f"sqlite:///{sqlite_file_name}"
-
-engine = create_engine(sqlite_url, echo=True)
-
-SQLModel.metadata.create_all(engine)
