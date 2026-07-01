@@ -42,15 +42,8 @@ class Text(BaseText, table=True):
         back_populates="texts",
         link_model=RubricTextLink
     )
-    created_at: datetime = Field(
-        sa_column=Column(
-            "created_at",
-            DateTime,
-            server_default=text('CURRENT_TIMESTAMP'), #Храним время для автосинхронизации с es
-            nullable=False
-        )
-    )
+
 
 class TextResponse(BaseText):
-    """Модель объекта, который мы будем вохвращать через API"""
+    """Модель объекта, который мы будем возвращать через API"""
     rubrics: List[Rubric] = []
