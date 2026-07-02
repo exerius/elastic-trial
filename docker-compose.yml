@@ -1,0 +1,71 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    container_name: fastapi-app
+    ports:
+      - "8000:8000"
+    environment:
+      - DB_LINK=postgresql://postgres:postgres@db:5432/fastapi_db
+      - ES_LINK=http://elasticsearch:9200
+      - ELASTICSEARCH_USER=elastic
+      - ELASTICSEARCH_PASSWORD=changeme
+      - ES_INDEX=texts_index
+    depends_on:
+      db:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
+    command: >
+      sh -c "python setup.py && fastapi run main.py --host 0.0.0.0 --port 8000"
+    networks:
+      - app-network
+
+  db:
+    image: postgres:15-alpine
+    container_name: fastapi-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: fastapi_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - app-network
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:9.0.0
+    container_name: fastapi-es
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=true
+      - ELASTIC_PASSWORD=changeme
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    volumes:
+      - es_data:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "-u", "elastic:changeme", "http://localhost:9200"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - app-network
+
+volumes:
+  postgres_data:
+  es_data:
+
+networks:
+  app-network:
+    driver: bridge
