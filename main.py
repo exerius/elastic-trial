@@ -10,9 +10,10 @@ from database import get_session
 from models import Text, TextResponse
 from dotenv import load_dotenv
 
+
 load_dotenv()
 
-es_client = Elasticsearch([os.getenv("ES_LINK")])
+es_client = Elasticsearch(hosts=[os.getenv("ES_LINK")], http_auth=(os.getenv('ELASTICSEARCH_USER'), os.getenv('ELASTICSEARCH_PASSWORD')))
 
 
 def get_es() -> Elasticsearch:

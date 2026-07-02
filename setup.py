@@ -29,17 +29,37 @@ def es_bulk_actions():
 
 
 sqlite_url = os.getenv("DB_LINK")
-es = Elasticsearch([os.getenv("ES_LINK")])
+es = Elasticsearch(hosts=[os.getenv("ES_LINK")], http_auth=(os.getenv('ELASTICSEARCH_USER'), os.getenv('ELASTICSEARCH_PASSWORD')))
 index_name = os.getenv("ES_INDEX")
 if es.indices.exists(index=index_name):
     es.indices.delete(index=index_name)
 if not es.indices.exists(index=index_name):
     es.indices.create(index=index_name, body={
+        "settings": {
+            "analysis": {
+                "filter": {
+                    "trigrams_filter": {
+                        "type": "ngram",
+                        "min_gram": 3, # Датасет многоязычный, поэтому триграммы
+                        "max_gram": 3
+                    }
+                },
+                "analyzer": {
+                    "trigrams_analyzer": {
+                        "type": "custom",
+                        "tokenizer": "standard",
+                        "filter": ["lowercase", "trigrams_filter"]
+                    }
+                }
+            }
+        },
         "mappings": {
             "properties": {
                 "id": {"type": "keyword"},
                 "text": {
                     "type": "text",
+                    "analyzer": "trigrams_analyzer",
+                    "search_analyzer": "trigrams_analyzer"
                 }
             }
         }
@@ -64,12 +84,12 @@ linkage_table = linkage_table
 SQLModel.metadata.create_all(engine)
 
 with Session(engine) as session:
-    for rubric_name in unique_rubrics:
-        session.add(Rubric(name=rubric_name))
+    for i, rubric_name in enumerate(unique_rubrics):
+        session.add(Rubric(id=i, name=rubric_name))
     session.commit()
 
     for row in texts_table.iterrows():
-        session.add(Text(text=row[1].text, created_date=row[1].created_date))
+        session.add(Text(id=row[0], text=row[1].text, created_date=row[1].created_date))
     session.commit()
     for row in linkage_table:
         session.add(RubricTextLink(text_id=row["text_id"], rubric_id=row["rubric_id"]))
