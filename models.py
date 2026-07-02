@@ -1,8 +1,9 @@
 from datetime import datetime
-from typing import Optional, List
+from typing import Optional, List, Any
 
+from pydantic import validator, field_validator
 from sqlalchemy import table, Column, DateTime, text
-from sqlmodel import Field, SQLModel, create_engine, Relationship
+from sqlmodel import Field, SQLModel, Relationship
 
 
 #Запрета на ORM в задании не было, использую sqlalchemy+sqlmodel
@@ -46,4 +47,12 @@ class Text(BaseText, table=True):
 
 class TextResponse(BaseText):
     """Модель объекта, который мы будем возвращать через API"""
-    rubrics: List[Rubric] = []
+    rubrics: List[str] = []
+
+
+    @field_validator('rubrics', mode='before')
+    @classmethod
+    def extract_rubric_names(cls, v: Any) -> List[str]:
+        if isinstance(v, list):
+            return [item.name if hasattr(item, 'name') else item for item in v]
+        return v

@@ -18,11 +18,8 @@ def es_bulk_actions():
         yield {
             "_index": index_name,
             "_id": row[0],
-            "source":
-                {
-                    "id": row[0],
-                    "text": row[1].text
-                }
+            "id": row[0],
+            "text": row[1].text
         }
 
 
@@ -30,39 +27,20 @@ sqlite_file_name = "database.db"
 sqlite_url = f"sqlite:///{sqlite_file_name}"
 es = Elasticsearch(['http://localhost:9200'])
 index_name = "texts_index"
+if es.indices.exists(index=index_name):
+    es.indices.delete(index=index_name)
 if not es.indices.exists(index=index_name):
     es.indices.create(index=index_name, body={
-    "settings": {
-        "analysis": {
-            "filter": {
-                "trigrams_filter": {
-                    "type": "ngram",
-                    "min_gram": 3, # Датасет многоязычен (русский, казахский, арабский, возможно др.), поэтому триграммы
-                    "max_gram": 3
-                }
-            },
-            "analyzer": {
-                "trigrams_analyzer": {
-                    "type": "custom",
-                    "tokenizer": "standard",
-                    "filter": ["lowercase", "trigrams_filter"]
-                }
-            }
-        }
-    },
         "mappings": {
             "properties": {
                 "id": {"type": "keyword"},
-                "text": {"type": "text", "analyzer": "russian"},
+                "text": {
+                    "type": "text",
+                }
             }
         }
     })
 engine = create_engine(sqlite_url, echo=True)
-
-
-if es.indices.exists(index="texts_index"):
-    es.indices.delete(index="texts_index")
-
 
 
 all_data = pd.read_csv("data/posts.csv", parse_dates=["created_date"])
@@ -96,3 +74,4 @@ with Session(engine) as session:
 
 success, errors = helpers.bulk(es, es_bulk_actions(), chunk_size=1500)
 print(f"Индексировано: {success}, ошибок: {len(errors)}")
+es.indices.refresh(index="texts_index")
