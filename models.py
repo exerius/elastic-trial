@@ -1,8 +1,7 @@
 from datetime import datetime
 from typing import Optional, List, Any
 
-from pydantic import validator, field_validator
-from sqlalchemy import table, Column, DateTime, text
+from pydantic import field_validator
 from sqlmodel import Field, SQLModel, Relationship
 
 

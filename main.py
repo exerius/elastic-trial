@@ -1,14 +1,18 @@
+import os
 from typing import Optional, List
 
-from elasticsearch import Elasticsearch, NotFoundError
+from elasticsearch import Elasticsearch
 from fastapi import FastAPI, Depends, HTTPException
 from sqlalchemy.orm import selectinload
-from sqlmodel import Session, select, delete
+from sqlmodel import Session, select
 
 from database import get_session
 from models import Text, TextResponse
+from dotenv import load_dotenv
 
-es_client = Elasticsearch(["http://localhost:9200"])
+load_dotenv()
+
+es_client = Elasticsearch([os.getenv("ES_LINK")])
 
 
 def get_es() -> Elasticsearch:
@@ -32,7 +36,7 @@ async def search_texts(search: Optional[str] = None, session: Session = Depends(
             "_source": ["id"],
             "size": 20
         }
-        response = es.search(index="texts_index", **es_request_body)
+        response = es.search(index=os.getenv("ES_INDEX"), **es_request_body)
         ids = [hit["_source"]["id"] for hit in response["hits"]["hits"]]
         db_query = (
             select(Text)
@@ -55,7 +59,7 @@ async def delete_text(text_id: int, session: Session = Depends(get_session), es:
     if text is None:
         raise HTTPException(status_code=404, detail=f"Text with id {text_id} not found")
     try:
-        es.delete_by_query(index="texts_index", **{"query": {"match": {"id": {"query": text_id}}}}, refresh=True)
+        es.delete_by_query(index=os.getenv("ES_INDEX"), **{"query": {"match": {"id": {"query": text_id}}}}, refresh=True)
     except Exception as e:
         session.rollback()
         raise HTTPException(

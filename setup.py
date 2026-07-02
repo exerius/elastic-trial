@@ -1,8 +1,13 @@
+import os
+
+from dotenv import load_dotenv
 from elasticsearch import Elasticsearch, helpers
 from sqlmodel import Session, create_engine, SQLModel
 
 from models import Text, RubricTextLink, Rubric
 import pandas as pd
+
+load_dotenv()
 
 """Это скрипт создания базы данных и индекса"""
 
@@ -23,10 +28,9 @@ def es_bulk_actions():
         }
 
 
-sqlite_file_name = "database.db"
-sqlite_url = f"sqlite:///{sqlite_file_name}"
-es = Elasticsearch(['http://localhost:9200'])
-index_name = "texts_index"
+sqlite_url = os.getenv("DB_LINK")
+es = Elasticsearch([os.getenv("ES_LINK")])
+index_name = os.getenv("ES_INDEX")
 if es.indices.exists(index=index_name):
     es.indices.delete(index=index_name)
 if not es.indices.exists(index=index_name):
